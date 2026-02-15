@@ -23,5 +23,8 @@ build/
 .vscode/
 *.sublime-*
 
+# Built app (run ./build_app.sh to create)
+LAIN-tools.app/
+
 # Optional: uncomment to avoid committing your icon
 # icon.png

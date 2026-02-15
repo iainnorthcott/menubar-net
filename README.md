@@ -41,7 +41,43 @@ Ping, Speedtest, and LAN Scanner all run in a new Terminal window so you can see
    python lain_tools.py
    ```
 
-The app stays in the menu bar until you choose **Quit**. To run it at login, add the same command to **Login Items** (System Settings → General → Login Items) or use a launch agent.
+The app stays in the menu bar until you choose **Quit**.
+
+---
+
+## Run as an app (recommended) and Launch at Login
+
+To get a **double-clickable app** and the **Launch at Login** menu option:
+
+### Build requirements
+
+- **Xcode Command Line Tools** — Required so the build can compile **psutil** from source inside the app (the pre-built wheel can fail to load when run from an app bundle). If you don’t have them:
+  ```bash
+  xcode-select --install
+  ```
+- You must have already set up the project: clone, create venv, and `pip install -r requirements.txt` (see [Installation](#installation)). The build script uses your project’s venv Python to create a fresh venv inside the app.
+
+### Building the app
+
+1. From the project directory, run:
+   ```bash
+   ./build_app.sh
+   ```
+   The script:
+   - Creates **LAIN-tools.app** in the same folder.
+   - Puts a new virtual environment inside the app and installs **rumps** and **speedtest-cli**.
+   - Builds **psutil** from source (`pip install --no-binary psutil psutil`) so the C extension matches the app’s Python and path and loads correctly in the bundle.
+   The first build can take a minute while psutil compiles. When it finishes, the app opens automatically.
+
+2. **Run the app** — After building, the app should open on its own. You can also double-click **LAIN-tools.app**, or drag it to **Applications** and open it from there.
+
+   **If the app doesn’t start:**
+   - **Right-click** the app → **Open** to get past macOS Gatekeeper the first time.
+   - If it still fails, an alert shows the error (e.g. missing Python or an import traceback). Fix the cause (e.g. install Command Line Tools if you see a compiler error) and run `./build_app.sh` again.
+
+3. **Launch at Login** — When running from the .app, the menu shows **Launch at Login**. Turn it on (checkmark) to start LAIN-tools when you log in; turn it off to remove it from Login Items. A notification confirms the change.
+
+If you run `python lain_tools.py` from the terminal instead of the .app, the “Launch at Login” item does not appear (it only works when the app is run as the .app bundle).
 
 ---
 
@@ -55,6 +91,7 @@ The app stays in the menu bar until you choose **Quit**. To run it at login, add
 | **Ping google.com** | Terminal: ping google.com. |
 | **Speedtest** | Terminal: run `speedtest-cli` (download/upload). |
 | **LAN Scanner** | Submenu with one or two entries per available network (see below). |
+| **Launch at Login** | (Only when running as .app.) Toggle to start the app when you log in. |
 | **Quit** | Exits the app. |
 
 ---
@@ -103,17 +140,19 @@ LAIN-tools/
 ├── lain_tools.py      # Main menu bar app
 ├── lan_scan.py        # Subnet scanner (hosts + optional ports)
 ├── requirements.txt   # Python dependencies
+├── build_app.sh       # Builds LAIN-tools.app (run ./build_app.sh)
 ├── .gitignore
 ├── icon.png          # Optional; omit to show IP text in menu bar
 ├── ip_test.py         # Standalone IP test script (optional)
-└── connection_test.py # Standalone connection test (optional)
+├── connection_test.py # Standalone connection test (optional)
+└── LAIN-tools.app/   # Created by build_app.sh; double-click to run
 ```
 
 ---
 
 ## Dependencies
 
-- **psutil** — Network interfaces and addresses.
+- **psutil** — Network interfaces and addresses. In the built .app, it is installed from source so the C extension loads correctly inside the bundle.
 - **rumps** — Menu bar app (uses PyObjC/Cocoa).
 - **speedtest-cli** — Used when you run **Speedtest** from the menu.
 

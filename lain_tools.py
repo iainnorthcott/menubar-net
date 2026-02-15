@@ -186,6 +186,57 @@ _LAN_SCAN_SCRIPT = os.path.join(_APP_DIR, "lan_scan.py")
 # Place icon.png here (e.g. 22×22 or 44×44 PNG); menu bar shows icon only when present
 _ICON_PATH = os.path.join(_APP_DIR, "icon.png")
 
+
+def _get_app_bundle_path():
+    """If running from inside an .app bundle, return the path to the .app; else None."""
+    path = os.path.abspath(__file__)
+    if ".app/Contents" not in path:
+        return None
+    # Walk up from __file__ to find the .app
+    dir_ = os.path.dirname(path)
+    while dir_ and dir_ != "/":
+        if dir_.endswith(".app"):
+            return dir_
+        dir_ = os.path.dirname(dir_)
+    return None
+
+
+def _launch_at_login_enabled():
+    """True if this app is in the user's Login Items."""
+    app_path = _get_app_bundle_path()
+    if not app_path:
+        return False
+    try:
+        script = f'''
+        tell application "System Events"
+            set loginItems to name of every login item
+            return "LAIN-tools" in loginItems
+        end tell
+        '''
+        out = subprocess.check_output(["osascript", "-e", script], text=True, timeout=5)
+        return "true" in out.lower()
+    except Exception:
+        return False
+
+
+def _set_launch_at_login(enabled):
+    """Add or remove this app from Login Items."""
+    app_path = _get_app_bundle_path()
+    if not app_path:
+        return False
+    # Escape backslashes and quotes for AppleScript string
+    app_path_safe = app_path.replace("\\", "\\\\").replace('"', '\\"')
+    try:
+        if enabled:
+            script = f'tell application "System Events" to make login item at end with properties {{path:POSIX file "{app_path_safe}", hidden:false}}'
+        else:
+            script = 'tell application "System Events" to delete login item "LAIN-tools"'
+        subprocess.run(["osascript", "-e", script], check=True, timeout=5)
+        return True
+    except Exception:
+        return False
+
+
 # --- Open Terminal and run a command ---
 
 def run_in_terminal(command):
@@ -288,7 +339,7 @@ class NetStatusApp(rumps.App):
             rumps.MenuItem("LAN Scanner"),
             lan_scan_items if lan_scan_items else [rumps.MenuItem("No networks with subnet", callback=None)],
         )
-        return ip_items + [
+        menu_parts = ip_items + [
             rumps.separator,
             rumps.MenuItem("All IP addresses", callback=self.show_all_ips),
             rumps.separator,
@@ -297,9 +348,17 @@ class NetStatusApp(rumps.App):
             rumps.MenuItem("Speedtest", callback=self.run_speedtest_menu),
             rumps.separator,
             lan_scanner_submenu,
+        ]
+        if _get_app_bundle_path():
+            launch_item = rumps.MenuItem("Launch at Login", callback=self._toggle_launch_at_login)
+            launch_item.state = 1 if _launch_at_login_enabled() else 0
+            menu_parts.append(rumps.separator)
+            menu_parts.append(launch_item)
+        menu_parts.extend([
             rumps.separator,
             rumps.MenuItem("Quit", callback=lambda _: rumps.quit_application()),
-        ]
+        ])
+        return menu_parts
 
     def _update_title(self, _):
         if not self._use_icon:
@@ -357,6 +416,15 @@ class NetStatusApp(rumps.App):
         script = _LAN_SCAN_SCRIPT.replace("'", "'\"'\"'")
         ports_arg = " --ports" if with_ports else ""
         run_in_terminal(f'bash -c \'"{python_exe}" "{script}" {cidr}{ports_arg}; echo; read -p "Press Enter to close..."\'')
+
+    def _toggle_launch_at_login(self, _):
+        currently = _launch_at_login_enabled()
+        if _set_launch_at_login(not currently):
+            rumps.notification(
+                "LAIN-tools",
+                "Launch at Login",
+                "On — will start when you log in." if not currently else "Off — removed from Login Items.",
+            )
 
 
 if __name__ == "__main__":
