@@ -346,6 +346,7 @@ class NetStatusApp(rumps.App):
             rumps.MenuItem("Ping gateway", callback=self.ping_gateway),
             rumps.MenuItem("Ping google.com", callback=self.ping_google),
             rumps.MenuItem("Speedtest", callback=self.run_speedtest_menu),
+            rumps.MenuItem("LLDP neighbors", callback=self.show_lldp_neighbors),
             rumps.separator,
             lan_scanner_submenu,
         ]
@@ -410,6 +411,20 @@ class NetStatusApp(rumps.App):
         # Use same Python as this app (e.g. venv) so speedtest module is found
         python_exe = sys.executable.replace("'", "'\"'\"'")
         run_in_terminal(f'bash -c \'"{python_exe}" -m speedtest; echo; read -p "Press Enter to close..."\'')
+
+    @rumps.clicked("LLDP neighbors")
+    def show_lldp_neighbors(self, _):
+        try:
+            r = subprocess.run(["which", "lldpcli"], capture_output=True, timeout=2)
+        except Exception:
+            r = None
+        if not r or r.returncode != 0:
+            rumps.alert(
+                "LLDP neighbors",
+                "lldpcli is not installed.\n\nInstall lldpd with Homebrew:\n\n  brew install lldpd\n  sudo brew services start lldpd\n\nThen try again.",
+            )
+            return
+        run_in_terminal('bash -c \'echo "LLDP neighbors (sudo may prompt for password):"; echo; sudo lldpcli show neighbors 2>&1; echo; read -p "Press Enter to close..."\'')
 
     def _run_lan_scan(self, cidr, with_ports=False):
         python_exe = sys.executable.replace("'", "'\"'\"'")

@@ -15,6 +15,7 @@ A macOS menu bar app for network information, connectivity tests, and LAN discov
 - **Ping gateway** — Opens Terminal and pings your default gateway (from `route -n get default`).
 - **Ping google.com** — Opens Terminal and pings `google.com`.
 - **Speedtest** — Opens Terminal and runs a download/upload speed test via `speedtest-cli` (uses the same Python as the app so your venv dependencies are used).
+- **LLDP neighbors** — Opens Terminal and runs `lldpcli show neighbors` so you can see connected switches, routers, and other LLDP-capable devices (system name, chassis ID, port, etc.). Requires [lldpd](https://formulae.brew.sh/formula/lldpd) to be installed and running (`brew install lldpd` then `sudo brew services start lldpd`). May prompt for your password (sudo).
 - **LAN Scanner** — Per-interface subnet scan with two modes:
   - **Hosts** — Ping sweep, then show **IP**, **MAC** (from ARP), and **hostname** (reverse DNS / mDNS).
   - **Ports** — Same sweep, then show **IP**, **MAC**, and **open TCP ports** (21, 22, 23, 80, 443, 445, 631, 3306, 3389, 5353, 8080, 9100, 62078).
@@ -92,9 +93,27 @@ If you run `python lain_tools.py` from the terminal instead of the .app, the “
 | **Ping gateway** | Terminal: ping default gateway, then “Press Enter to close…”. |
 | **Ping google.com** | Terminal: ping google.com. |
 | **Speedtest** | Terminal: run `speedtest-cli` (download/upload). |
+| **LLDP neighbors** | Terminal: `lldpcli show neighbors` (requires lldpd; see below). |
 | **LAN Scanner** | Submenu with one or two entries per available network (see below). |
 | **Launch at Login** | (Only when running as .app.) Toggle to start the app when you log in. |
 | **Quit** | Exits the app. |
+
+---
+
+## LLDP neighbors
+
+The **LLDP neighbors** menu item opens Terminal and runs `sudo lldpcli show neighbors`, which lists devices that speak LLDP on your link (e.g. switch, router, access point): system name, chassis ID (MAC), port ID/description, management address, capabilities, TTL.
+
+**Requirements:**
+
+- **lldpd** is not included with macOS. Install and start it with Homebrew:
+  ```bash
+  brew install lldpd
+  sudo brew services start lldpd
+  ```
+- The command runs with `sudo`, so Terminal will prompt for your password when you use **LLDP neighbors**.
+
+If lldpd is not installed or not running, the Terminal window will show an error (e.g. `command not found` or connection refused).
 
 ---
 
