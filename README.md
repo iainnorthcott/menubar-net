@@ -4,6 +4,8 @@ A macOS menu bar app for network information, connectivity tests, and LAN discov
 
 **Requirements:** macOS, Python 3.7+
 
+![LAIN-tools menu bar](example.png)
+
 ---
 
 ## Features
